@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from src.api.models.ocr_models import (
+from src.models.ocr_models import (
     OCRRequest,
     OCRResponse
 )
