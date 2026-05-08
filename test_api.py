@@ -11,9 +11,9 @@ import requests
 # CONFIG
 # =========================================================
 
-API_URL = "http://127.0.0.1:8000/analyze"
+API_URL = "https://vision-i-api.up.railway.app/ocr"
 
-IMAGE_PATH = "cache/test.jpg"
+IMAGE_PATH = "cache/ocr_test.jpg"
 
 # =========================================================
 # IMAGE -> BASE64
@@ -30,18 +30,10 @@ with open(IMAGE_PATH, "rb") as image_file:
 # =========================================================
 
 payload = {
-
     "frame_b64": frame_b64,
-
-    "user_mode": "normal",
-
     "frame_width": 640,
-
-    "include_description": True,
-
-    "describe_mode": "awareness",
+    "read_mode": "standard"
 }
-
 # =========================================================
 # SEND REQUEST
 # =========================================================

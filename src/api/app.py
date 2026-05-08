@@ -19,6 +19,9 @@ from src.api.routes.detect import (
 from src.services.model_loader import (
     load_model,
 )
+from src.api.routes.ocr import (
+    router as ocr_router
+)
 
 # =========================================================
 # FASTAPI APP
@@ -72,3 +75,5 @@ app.include_router(decision_router)
 app.include_router(describe_router)
 
 app.include_router(analyze_router)
+
+app.include_router(ocr_router)
