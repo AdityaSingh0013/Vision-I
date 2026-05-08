@@ -1,1 +1,0 @@
-# Code for OCR and Decision services

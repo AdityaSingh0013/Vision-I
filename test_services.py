@@ -3,7 +3,7 @@ Local test for Vision I services layer.
 """
 
 import base64
-import asyncio
+
 import cv2
 
 from src.services.decision_service import (
@@ -18,16 +18,12 @@ from src.services.detection_service import (
 from src.services.model_loader import (
     load_model,
 )
-from src.services.ocr_service import (
-    OCRService,
-)
 
 # =========================================================
 # CONFIG
 # =========================================================
 
 TEST_IMAGE = "cache/test.jpg"
-OCR_TEST_IMAGE = "cache/ocr_test.jpg"
 
 # =========================================================
 # STARTUP
@@ -36,8 +32,6 @@ OCR_TEST_IMAGE = "cache/ocr_test.jpg"
 print("[INFO] Loading model...")
 
 load_model()
-
-ocr_service = OCRService()
 
 print("[INFO] Model loaded")
 
@@ -78,27 +72,6 @@ decision_result = run_decision(
 )
 
 print(decision_result)
-
-# =========================================================
-# OCR TEST
-# =========================================================
-
-print("\n===== OCR TEST =====")
-
-with open(OCR_TEST_IMAGE, "rb") as image_file:
-    frame_b64 = base64.b64encode(
-        image_file.read()
-    ).decode("utf-8")
-
-ocr_result = asyncio.run(
-    ocr_service.extract_text(
-        frame_b64=frame_b64,
-        frame_width=640,
-        read_mode="standard"
-    )
-)
-
-print(ocr_result)
 
 # =========================================================
 # DESCRIPTION TEST
