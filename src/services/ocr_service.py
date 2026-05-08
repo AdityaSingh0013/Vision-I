@@ -12,10 +12,12 @@ from src.utils.image_preprocessing import preprocess_for_ocr
 
 class OCRService:
     def __init__(self):
-        self.reader = easyocr.Reader(
-            ['en'],
-            gpu=False
-        )
+        """
+        Lazy-loaded OCR reader.
+
+        Prevents Railway startup OOM crashes.
+        """
+        self.reader = None
 
     async def extract_text(
         self,
@@ -28,6 +30,21 @@ class OCRService:
         """
 
         try:
+
+            # --------------------------------------------------
+            # Lazy load EasyOCR only when needed
+            # --------------------------------------------------
+
+            if self.reader is None:
+                self.reader = easyocr.Reader(
+                    ['en'],
+                    gpu=False
+                )
+
+            # --------------------------------------------------
+            # Decode image
+            # --------------------------------------------------
+
             image = self._decode_image(frame_b64)
 
             if image is None:
@@ -36,10 +53,18 @@ class OCRService:
                     "error": "Invalid image data"
                 }
 
+            # --------------------------------------------------
+            # Preprocess image
+            # --------------------------------------------------
+
             processed = preprocess_for_ocr(
                 image,
                 target_width=frame_width * 2
             )
+
+            # --------------------------------------------------
+            # Async OCR execution
+            # --------------------------------------------------
 
             loop = asyncio.get_running_loop()
 
@@ -48,35 +73,54 @@ class OCRService:
                 lambda: self.reader.readtext(processed)
             )
 
+            # --------------------------------------------------
+            # Empty OCR result
+            # --------------------------------------------------
+
             if not results:
                 return {
                     "success": False,
                     "error": "No readable text detected"
                 }
 
+            # --------------------------------------------------
+            # Parse OCR output
+            # --------------------------------------------------
+
             raw_text, confidence = self._parse_results(results)
 
             cleaned_text = self._clean_text(raw_text)
 
-            reading_time = self._estimate_reading_time(cleaned_text)
+            reading_time = self._estimate_reading_time(
+                cleaned_text
+            )
+
+            # --------------------------------------------------
+            # Success response
+            # --------------------------------------------------
 
             return {
                 "success": True,
                 "raw_text": raw_text,
                 "cleaned_text": cleaned_text,
                 "language": "en",
-                "confidence": round(confidence, 2),
+                "confidence": float(
+                    round(confidence, 2)
+                ),
                 "speak": True,
                 "reading_time_seconds": reading_time
             }
 
         except Exception as e:
+
             return {
                 "success": False,
                 "error": str(e)
             }
 
-    # --------------------------------------------------
+    # ==================================================
+    # Decode Base64 Image
+    # ==================================================
 
     def _decode_image(self, frame_b64):
         """
@@ -84,7 +128,10 @@ class OCRService:
         """
 
         try:
-            image_bytes = base64.b64decode(frame_b64)
+
+            image_bytes = base64.b64decode(
+                frame_b64
+            )
 
             np_array = np.frombuffer(
                 image_bytes,
@@ -101,7 +148,9 @@ class OCRService:
         except Exception:
             return None
 
-    # --------------------------------------------------
+    # ==================================================
+    # Parse OCR Results
+    # ==================================================
 
     def _parse_results(self, results):
         """
@@ -112,6 +161,7 @@ class OCRService:
         confidences = []
 
         for result in results:
+
             text = result[1]
             confidence = result[2]
 
@@ -127,26 +177,37 @@ class OCRService:
 
         return raw_text, avg_confidence
 
-    # --------------------------------------------------
+    # ==================================================
+    # Accessibility Cleanup
+    # ==================================================
 
     def _clean_text(self, text):
         """
         Accessibility-focused OCR cleanup.
         """
 
-        text = re.sub(r'\s+', ' ', text)
+        # Remove excessive whitespace
+        text = re.sub(
+            r'\s+',
+            ' ',
+            text
+        )
 
+        # Remove OCR artifacts
         text = re.sub(
             r'[^a-zA-Z0-9\s.,!?;:\'-]',
             '',
             text
         )
 
+        # Cleanup
         text = text.strip()
 
         return text
 
-    # --------------------------------------------------
+    # ==================================================
+    # Reading Time Estimation
+    # ==================================================
 
     def _estimate_reading_time(self, text):
         """
@@ -159,4 +220,7 @@ class OCRService:
 
         minutes = words / wpm
 
-        return max(1, math.ceil(minutes * 60))
+        return max(
+            1,
+            math.ceil(minutes * 60)
+        )
